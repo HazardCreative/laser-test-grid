@@ -8,9 +8,9 @@ from datetime import datetime
 # defaults
 power_list = [100, 200, 400, 700, 1000]
 speed_list = [2000, 4000, 6000, 8000, 10000]
-passes = [1]
+passes = [1, 2, 3]
 width = 10.0
-lines = [3.0]
+lines = [3.0, 6.0]
 types = ['power', 'speed']
 limit = 1000.0
 
@@ -89,7 +89,7 @@ def draw_grid(x_type, y_type):
     elif x_type == 'speed':
         x_len = len(speed_list)
     elif x_type == 'pass':
-        x_len = len(pass_num)
+        x_len = len(passes)
     elif x_type == 'lines':
         x_len = len(line_density)
 
@@ -98,7 +98,7 @@ def draw_grid(x_type, y_type):
     elif y_type == 'speed':
         y_len = len(speed_list)
     elif y_type == 'pass':
-        y_len = len(pass_num)
+        y_len = len(passes)
     elif y_type == 'lines':
         y_len = len(line_density)
 
@@ -140,6 +140,7 @@ CMDARG_LINES = '-lines'
 CMDARG_FILL = '-fill'
 CMDARG_TYPES = '-xy'
 CMDARG_LIMIT = '-limit'
+CMDARG_INSET = '-inset'
 
 if __name__ == '__main__' and len(sys.argv) > 1:
     if CMDARG_HELP in sys.argv:
@@ -197,7 +198,7 @@ if __name__ == '__main__' and len(sys.argv) > 1:
         types_arg_idx = sys.argv.index(CMDARG_TYPES) + 1
         if types_arg_idx < len(sys.argv):
             try:
-                types = [s for s in sys.argv[types_arg_idx]]
+                types = [s for s in sys.argv[types_arg_idx].split(',')]
                 values = ['power', 'speed', 'pass', 'lines']
                 if len(types) != 2:
                     raise
@@ -217,17 +218,45 @@ if __name__ == '__main__' and len(sys.argv) > 1:
                 print("Invalid argument for -max")
                 sys.exit(1)
 
+    if CMDARG_INSET in sys.argv:
+        gap_arg_idx = sys.argv.index(CMDARG_INSET) + 1
+        if gap_arg_idx < len(sys.argv):
+            try:
+                inset = float(sys.argv[gap_arg_idx])
+                if inset >= 0.5:
+                    print("inset must be < 0.5")
+                    sys.exit(1)
+            except:
+                print("Invalid argument for -inset")
+                sys.exit(1)
+
 # collect meta
 print(F"\nGrenerating {filename}")
 meta = []
 if fill_mode:
     meta.append("Mode: Fill/engrave")
-    meta.append(F"Lines/mm: {lines}")
+    if 'lines' in types:
+        meta.append(F"Lines/mm: {lines}")
+    else:
+        meta.append(F"Lines/mm: {lines[0]}")
 else:
     meta.append("Mode: Outline/cut")
-meta.append(F"Powers: {power_list}")
-meta.append(F"Speeds: {speed_list}")
-meta.append(F"Passes: {passes}")
+
+if 'power' in types:
+    meta.append(F"Powers: {power_list}")
+else:
+    meta.append(F"Power: {power_list[0]}")
+
+if 'speed' in types:
+    meta.append(F"Speeds: {speed_list}")
+else:
+    meta.append(F"Speed: {speed_list[0]}")
+
+if 'pass' in types:
+    meta.append(F"Passes: {passes}")
+else:
+    meta.append(F"Passes: {passes[0]}")
+
 meta.append(F"Output size: {width * len(power_list)}mm x {width * len(speed_list)}mm")
 meta.append(F"Columns: {types[0]} Rows: {types[1]}")
 if limit < 1000:
@@ -240,12 +269,14 @@ if not help_mode:
 if help_mode or (__name__ == '__main__' and len(sys.argv) <= 1):
     print("\n\nUsage:")
     print("-p <list>: powers to test")
-    print("-s <list>: speeds to test (mm/s)")
+    print("-s <list>: speeds to test (mm/min)")
     print("-pass <#>: number of passes")
     print("-w <#>: size of test patch (mm)")
+    print("-inset <#>: margin on each patch (pct of w)")
     print("-lines <#>: fill mode density (lines/mm)")
     print("-fill: switch to fill/engrave mode (default is outline/cut)")
     print("-limit <#>: Limits maximum energy at power/speed")
+    print("-xy <list>: axis mode (power/speed/pass/lines)")
 
 if not help_mode:
     # run generator
